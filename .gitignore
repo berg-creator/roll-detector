@@ -1,0 +1,14 @@
+data/videos/
+models/
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+data/frames/
+data/dataset/
+runs/
+review/
+*.mp4
+review_diff/
+.pytest_cache/
+*.csv
