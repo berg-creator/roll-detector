@@ -47,6 +47,10 @@ class VirtualRelay:
             self._csv[1].writerow([f"{t:.3f}", int(locked)])
             self._csv[0].flush()
 
+    def close(self):
+        if self._csv:
+            self._csv[0].close()
+
 
 def draw(frame, zone, detections, in_zone_flags, locked, t):
     h, w = frame.shape[:2]
@@ -113,7 +117,7 @@ def main():
             h, w = frame.shape[:2]
             try:
                 detections = detector(frame)
-            except Exception:  # битый кадр, сбой модели — не падаем, а блокируем
+            except Exception:  # битый кадр, сбой модели - не падаем, а блокируем
                 log.exception("ошибка обработки кадра")
                 logic.force_lock(t, "ошибка обработки кадра")
                 relay.set(logic.locked, t)
@@ -126,16 +130,16 @@ def main():
 
             if args.save:
                 if writer is None:
-                    fps = cfg["camera"]["fps"] if is_file else 20
-                    writer = cv2.VideoWriter(args.save, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                    writer = cv2.VideoWriter(args.save, cv2.VideoWriter_fourcc(*"mp4v"),
+                                             cfg["camera"]["fps"], (w, h))
                 writer.write(draw(frame, zone, detections, flags, locked, t))
     except KeyboardInterrupt:
         pass
     finally:
         if writer:
             writer.release()
-        if not is_file:
-            source.close()
+        source.close()
+        relay.close()
     if n:
         log.info("кадров: %d, среднее время обработки %.1f мс (%.1f кадр/с)",
                  n, 1000 * busy / n, n / busy)

@@ -1,4 +1,4 @@
-"""Обёртка над обученной моделью YOLO: кадр -> список рамок роликов."""
+"""Обертка над обученной моделью YOLO: кадр -> список рамок роликов."""
 from dataclasses import dataclass
 
 import numpy as np
@@ -20,7 +20,7 @@ class Detection:
 
 class RollDetector:
     def __init__(self, weights, conf=0.5, imgsz=480, device="cpu"):
-        # weights может быть .pt или экспортированная модель (.onnx, папка openvino) —
+        # weights может быть .pt или экспортированная модель (.onnx, папка openvino) -
         # ultralytics сам выберет движок по расширению.
         self.model = YOLO(weights, task="detect")
         self.conf = conf

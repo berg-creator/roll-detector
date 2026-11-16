@@ -1,4 +1,4 @@
-"""Тесты логики реле и зоны. Камера и модель не нужны: подаём (время, есть ролик)."""
+"""Тесты логики реле и зоны. Камера и модель не нужны: подаем (время, есть ролик)."""
 import pytest
 
 from relay import RelayLogic
@@ -9,7 +9,7 @@ DT = 1 / FPS
 
 
 def feed(logic, pattern, t0=0.0):
-    """pattern — список (длительность_с, есть_ролик). Возвращает (время, состояние) на каждом кадре."""
+    """pattern - список (длительность_с, есть_ролик). Возвращает (время, состояние) на каждом кадре."""
     out, t = [], t0
     for duration, present in pattern:
         for _ in range(round(duration * FPS)):
@@ -30,7 +30,7 @@ def test_lock_after_y_seconds():
 
 def test_thresholds_exact_with_float_time():
     # время как у VideoFileSource: номер кадра / 60 fps, каждый 3-й кадр (20 fps);
-    # 9.7 - 6.7 в float меньше 3 — блокировка всё равно должна быть ровно на 9.7
+    # 9.7 - 6.7 в float меньше 3 - блокировка все равно должна быть ровно на 9.7
     logic = RelayLogic(lock_after=3, unlock_after=5, start_locked=False)
     events = []
     for i in range(0, 1200, 3):

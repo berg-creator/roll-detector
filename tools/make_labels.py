@@ -2,18 +2,18 @@
 
 Шаги:
 1. отбрасываем рамки с низкой уверенностью;
-2. убираем дубли (NMS) и «объединяющие» рамки, которые охватывают
-   сразу несколько роликов — типичная ошибка zero-shot моделей;
-3. накладываем ручные правки из data/labels/fixes.json — там, где
+2. убираем дубли (NMS) и "объединяющие" рамки, которые охватывают
+   сразу несколько роликов - типичная ошибка zero-shot моделей;
+3. накладываем ручные правки из data/labels/fixes.json - там, где
    при проверке глазами автомат ошибся, рамки кадра заданы вручную;
 4. пишем YOLO-файлы и раскладываем кадры на train/val ПО ВИДЕО
    (кадры одного ролика почти одинаковые: если делить случайно,
    валидация будет мерить запоминание, а не обобщение).
 
-Формат fixes.json: {"имя_кадра.jpg": [[x1, y1, x2, y2], ...]} — полный
+Формат fixes.json: {"имя_кадра.jpg": [[x1, y1, x2, y2], ...]} - полный
 список рамок кадра, кроме складских STATIC_BOXES (они добавляются всегда);
 пустой список = на площадке роликов нет; null = кадр исключить из датасета
-(когда честно не сказать, ролик это или нет — например, видна полоска в 20 px).
+(когда честно не сказать, ролик это или нет - например, видна полоска в 20 px).
 
     python tools/make_labels.py --val demo_4 demo_6
 """
@@ -27,8 +27,8 @@ import cv2
 W, H = 1280, 720
 
 # Складские ролики у дальней стены (верх кадра). Камера и штабель неподвижны,
-# а zero-shot модель находит их то с уверенностью 0.6, то 0.2 — разметка
-# «то есть, то нет» учит сеть противоречию. Поэтому эти рамки задаём
+# а zero-shot модель находит их то с уверенностью 0.6, то 0.2 - разметка
+# "то есть, то нет" учит сеть противоречию. Поэтому эти рамки задаем
 # постоянными и добавляем в каждый кадр, а автоматические рамки рядом убираем.
 STATIC_BOXES = [
     [372, 0, 600, 157],  # передний ролик штабеля
@@ -55,8 +55,8 @@ def inside(inner, outer, tol=0.85):
 
 
 # Области, где роликов не бывает, но есть похожие объекты: стопка плоских
-# листов картона у стены (demo_8) — zero-shot модель принимает её за ролик.
-# Для детектора это важный «отрицательный» пример, поэтому рамки там убираем.
+# листов картона у стены (demo_8) - zero-shot модель принимает ее за ролик.
+# Для детектора это важный "отрицательный" пример, поэтому рамки там убираем.
 IGNORE_REGIONS = [
     [640, 0, 930, 160],
 ]
@@ -66,21 +66,21 @@ MAX_ROLL_WIDTH = 500  # px; самый широкий ролик на запис
 
 def is_edge_roll(d, edge_score):
     """Ролик, обрезанный левым/правым краем кадра: узкий, стоит на уровне пола.
-    Модель даёт таким пониженную уверенность (видна только часть), поэтому
-    для них порог ниже. Левый край — это выход транспортёра, пропускать их нельзя."""
+    Модель дает таким пониженную уверенность (видна только часть), поэтому
+    для них порог ниже. Левый край - это выход транспортера, пропускать их нельзя."""
     touches = d[0] < 8 or d[2] > W - 8
     return touches and d[4] >= edge_score and d[2] - d[0] < 350 and d[3] > 400 and d[3] - d[1] > 150
 
 
 def clean(dets, min_score, edge_score=0.2):
-    dets = [d for d in dets if d[2] - d[0] <= MAX_ROLL_WIDTH]  # «вся площадка» — частая ошибка
+    dets = [d for d in dets if d[2] - d[0] <= MAX_ROLL_WIDTH]  # "вся площадка" - частая ошибка
     dets = sorted((d for d in dets if d[4] >= min_score or is_edge_roll(d, edge_score)),
                   key=lambda d: -d[4])
     kept = []
     for d in dets:  # NMS
         if all(iou(d, k) < 0.5 for k in kept):
             kept.append(d)
-    # рамка, внутри которой целиком лежат две другие, — это «группа», а не ролик
+    # рамка, внутри которой целиком лежат две другие, - это "группа", а не ролик
     return [d[:4] for d in kept if sum(inside(o, d) for o in kept if o is not d) < 2]
 
 
@@ -95,6 +95,7 @@ def main():
     ap.add_argument("--fixes", default="data/labels/fixes.json")
     ap.add_argument("--frames", default="data/frames")
     ap.add_argument("--out", default="data/dataset")
+    ap.add_argument("--boxes", default="data/labels/boxes.json", help="куда записать итоговые рамки")
     ap.add_argument("--min-score", type=float, default=0.3)
     ap.add_argument("--val", nargs="+", default=["demo_4", "demo_6"], help="видео для валидации")
     args = ap.parse_args()
@@ -108,7 +109,7 @@ def main():
     boxes_all = {}
     for name, dets in sorted(raw.items()):
         if name in fixes and fixes[name] is None:
-            continue  # спорный кадр (виден край ролика в пару десятков пикселей) — не берём
+            continue  # спорный кадр (виден край ролика в пару десятков пикселей) - не берем
         if name in fixes:
             boxes = fixes[name]
         else:
@@ -124,8 +125,8 @@ def main():
         (out / "labels" / split / name.replace(".jpg", ".txt")).write_text(
             "".join(to_yolo(b) + "\n" for b in boxes))
 
-    # итоговые рамки в пикселях — для проверки глазами (tools/review.py)
-    Path("data/labels/boxes.json").write_text(json.dumps(boxes_all, indent=0))
+    # итоговые рамки в пикселях - для проверки глазами (tools/review.py)
+    Path(args.boxes).write_text(json.dumps(boxes_all, indent=0))
     (out / "data.yaml").write_text(
         f"path: {out.resolve()}\ntrain: images/train\nval: images/val\nnames:\n  0: roll\n")
     for split in ("train", "val"):
