@@ -19,6 +19,11 @@ import logging
 
 log = logging.getLogger("relay")
 
+# Время кадра — дробное (например, кадр 582 при 60 fps = 9.7 с), и разность
+# 9.7 - 6.7 в float получается 2.9999999999999996. Без допуска такое сравнение
+# с порогом Y = 3 срабатывало бы на кадр позже.
+EPS = 1e-6
+
 
 class RelayLogic:
     def __init__(self, lock_after, unlock_after, gap_tolerance=0.3, start_locked=True):
@@ -43,17 +48,17 @@ class RelayLogic:
         self._last_t = t
 
         if present:
-            if self._presence_start is None or t - self._last_seen > self.gap_tolerance:
+            if self._presence_start is None or t - self._last_seen > self.gap_tolerance + EPS:
                 self._presence_start = t
             self._last_seen = t
-        elif self._presence_start is not None and t - self._last_seen > self.gap_tolerance:
+        elif self._presence_start is not None and t - self._last_seen > self.gap_tolerance + EPS:
             self._presence_start = None  # разрыв слишком длинный — присутствие закончилось
 
         if not self.locked:
-            if present and t - self._presence_start >= self.lock_after:
+            if present and t - self._presence_start >= self.lock_after - EPS:
                 self._set(True, t, reason or f"ролик в зоне {t - self._presence_start:.2f} с")
         else:
-            if t - self._last_seen >= self.unlock_after:
+            if t - self._last_seen >= self.unlock_after - EPS:
                 self._presence_start = None  # после разблокировки отсчёт Y начинается заново
                 self._set(False, t, reason or f"зона пуста {t - self._last_seen:.2f} с")
         return self.locked

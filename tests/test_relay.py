@@ -28,6 +28,19 @@ def test_lock_after_y_seconds():
     assert first_change(trace, True) == pytest.approx(1 + 3, abs=DT)
 
 
+def test_thresholds_exact_with_float_time():
+    # время как у VideoFileSource: номер кадра / 60 fps, каждый 3-й кадр (20 fps);
+    # 9.7 - 6.7 в float меньше 3 — блокировка всё равно должна быть ровно на 9.7
+    logic = RelayLogic(lock_after=3, unlock_after=5, start_locked=False)
+    events = []
+    for i in range(0, 1200, 3):
+        t = i / 60
+        was = logic.locked
+        if logic.update(t, 402 <= i < 627) != was:  # ролик в зоне 6.7–10.4 с
+            events.append(round(t, 2))
+    assert events == [9.7, 15.4]  # 6.7 + Y; последний кадр с роликом 10.4 + Z
+
+
 def test_short_presence_does_not_lock():
     logic = RelayLogic(lock_after=3, unlock_after=5, start_locked=False)
     trace = feed(logic, [(2.9, True), (1, False), (2.9, True)])
